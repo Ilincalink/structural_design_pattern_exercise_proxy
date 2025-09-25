@@ -18,13 +18,20 @@ class ProxyVideoService:
         """
         # TODO: store the factory, set the underlying service to None,
         # and initialize an in-memory cache (e.g., a dict).
+        self.service_factory = service_factory
+        self.service: Optional[RealVideoService] = None
+        self.cache: Dict[Tuple[str, str], bytes] = {}
         raise NotImplementedError("TODO: implement ProxyVideoService.__init__")
 
     def _ensure_service(self) -> RealVideoService:
         """Construct the real service on demand (only when needed)."""
-        # TODO: if we don't have a real service yet, call the factory and store it.
+        if self.service is None:
+            self.service = self.service_factory()
+        return self.service
         # Then, return the real service.
-        raise NotImplementedError("TODO: implement ProxyVideoService._ensure_service")
+        if self.service is None:
+            self.service = self.service_factory()
+        return self.service
 
     def download_compressed(self, video_id: str, quality: str) -> bytes:
         """Return compressed bytes for (video_id, quality), using a cache."""
@@ -33,4 +40,10 @@ class ProxyVideoService:
         # 2) If present in cache, return it directly.
         # 3) Otherwise, ensure the service exists, call its download_compressed,
         #    store the result in cache, and return it.
-        raise NotImplementedError("TODO: implement ProxyVideoService.download_compressed")
+        key = (video_id, quality)
+        if key in self.cache:
+            return self.cache[key]
+        service = self._ensure_service()
+        result = service.download_compressed(video_id, quality)
+        self.cache[key] = result
+        return result
